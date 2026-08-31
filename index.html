@@ -12,28 +12,28 @@
       #print-modal { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; background: white;}
       .no-print { display: none !important; }
       .page-break { page-break-after: always; }
-      /* 프린트 시 폼 요소들이 잘 보이도록 테두리 조정 */
       input, select, textarea { border: 1px solid #ddd !important; background: transparent !important; }
-      /* 프린트 시 모든 탭 내용이 다 보이도록 강제 설정 */
-      #print-modal .tab-content { display: block !important; margin-bottom: 3rem; }
+      .force-print-block { display: block !important; margin-bottom: 2rem; }
     }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
 <script>
-  // ★ 선생님이 새로 발급받으신 웹 앱 URL 적용 완료 ★
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgdaG8zyc_9Fa8E3WJBzuQUJ_o06i1L1XxWJihOJoJq3BxOsJuDOO0_0mlzmASzmEGOw/exec";
   
   let currentUser = null;
-  let currentData = {
-    basic: {}, academic: { curriculum: [], mockExams: [], grades: {} }, 
-    career: { exploration: [], selfDirected: [] }, 
-    community: { items: [] }, 
-    reading: []
-  };
+  let currentData = getEmptyData();
 
-  // 2022 개정 교육과정 자동 분류 도우미
+  function getEmptyData() {
+    return {
+      basic: {}, academic: { curriculum: [], mockExams: [], grades: {} }, 
+      career: { exploration: [], selfDirected: [] }, 
+      community: { items: [] }, 
+      reading: []
+    };
+  }
+
   const curriculumMap = {
     "문학": "일반선택", "독서": "일반선택", "화법과언어": "일반선택", "심화국어": "진로선택",
     "대수": "일반선택", "미적분I": "일반선택", "확률과통계": "일반선택", "미적분II": "진로선택", "기하": "진로선택",
@@ -42,14 +42,12 @@
     "물리학II": "진로선택", "화학II": "진로선택", "수학과문화": "융합선택", "실생활과통계": "융합선택"
   };
 
-  // 전국연합학력평가 기본 구조 (학년별 세분화 반영)
   const mockExamRows = [
     { year: '1학년', month: '3월' }, { year: '1학년', month: '6월' }, { year: '1학년', month: '9월' }, { year: '1학년', month: '10월' }, { year: '1학년', month: '11월' },
     { year: '2학년', month: '3월' }, { year: '2학년', month: '6월' }, { year: '2학년', month: '9월' }, { year: '2학년', month: '10월' }, { year: '2학년', month: '11월' },
     { year: '3학년', month: '3월' }, { year: '3학년', month: '6월' }, { year: '3학년', month: '9월' }, { year: '3학년', month: '10월' }, { year: '3학년', month: '11월' }
   ];
 
-  // 공동체 역량 기본 구조 (4대 분류 및 하위항목 완벽 분리)
   const initialCommunityItems = [
     { category: '리더십', subCategory: '임원 활동' },
     { category: '리더십', subCategory: '협업 활동' },
@@ -65,7 +63,6 @@
     { category: '관계지향', subCategory: '행사 참여' }
   ];
 
-  // 로그인 처리
   async function login() {
     const id = document.getElementById('login-id').value;
     const pw = document.getElementById('login-pw').value;
@@ -87,23 +84,10 @@
 
     showLoading(true);
     try {
-      // CORS 문제 해결을 위해 Content-Type을 text/plain으로 강제 설정
       const response = await fetch(SCRIPT_URL, {
-        method: 'POST', 
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'login', id: id, pw: pw })
+        method: 'POST', body: JSON.stringify({ action: 'login', id: id, pw: pw })
       });
-      
-      const text = await response.text();
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch (e) {
-        alert("구글 서버 권한 오류입니다. Apps Script 배포 설정에서 '액세스 권한이 있는 사용자'를 '모든 사용자'로 변경했는지 꼭 확인해주세요!");
-        console.error("서버 응답 내용:", text);
-        showLoading(false);
-        return;
-      }
+      const result = await response.json();
       
       if(result.success) {
         currentUser = { role: 'student', id: id, pw: pw };
@@ -115,32 +99,37 @@
         alert(result.message);
       }
     } catch(e) {
-      alert("서버와 통신할 수 없습니다. 인터넷 연결을 확인해주세요. Error: " + e.message);
-      console.error(e);
+      alert("서버 통신 오류: " + e.message);
     }
     showLoading(false);
   }
 
-  // 데이터 병합 (초기 빈 배열 보장)
+  // 구형 데이터 충돌을 방지하는 강력한 병합 함수
   function mergeData(serverData) {
-    if(serverData.basic) currentData.basic = serverData.basic;
+    if(serverData.basic) currentData.basic = { ...currentData.basic, ...serverData.basic };
     
-    if(serverData.academic) currentData.academic = serverData.academic;
-    if(!currentData.academic.curriculum) currentData.academic.curriculum = [];
-    if(!currentData.academic.grades) currentData.academic.grades = {};
-    if(!currentData.academic.mockExams) currentData.academic.mockExams = [];
+    if(serverData.academic) currentData.academic = { ...currentData.academic, ...serverData.academic };
+    if(!Array.isArray(currentData.academic.curriculum)) currentData.academic.curriculum = [];
+    if(typeof currentData.academic.grades !== 'object') currentData.academic.grades = {};
+    if(!Array.isArray(currentData.academic.mockExams) || currentData.academic.mockExams.length === 0) {
+      currentData.academic.mockExams = mockExamRows.map(r => ({...r}));
+    }
     
-    if(serverData.career) currentData.career = serverData.career;
-    if(!currentData.career.exploration) currentData.career.exploration = [];
-    if(!currentData.career.selfDirected) currentData.career.selfDirected = [];
+    if(serverData.career) currentData.career = { ...currentData.career, ...serverData.career };
+    if(!Array.isArray(currentData.career.exploration)) currentData.career.exploration = [];
+    if(!Array.isArray(currentData.career.selfDirected)) currentData.career.selfDirected = [];
     
-    if(serverData.community) currentData.community = serverData.community;
-    if(!currentData.community.items) currentData.community.items = [];
+    if(serverData.community) currentData.community = { ...currentData.community, ...serverData.community };
+    if(!Array.isArray(currentData.community.items) || currentData.community.items.length === 0) {
+      currentData.community.items = initialCommunityItems.map(r => ({...r}));
+    }
     
-    if(serverData.reading) currentData.reading = serverData.reading;
+    if(Array.isArray(serverData.reading)) currentData.reading = serverData.reading;
+    if(!Array.isArray(currentData.reading) || currentData.reading.length === 0) {
+      currentData.reading = [{},{},{}];
+    }
   }
 
-  // 데이터 저장
   async function saveData(isTeacherMode = false, studentId = null) {
     showLoading(true);
     const payload = {
@@ -155,11 +144,7 @@
     };
 
     try {
-      const response = await fetch(SCRIPT_URL, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload) 
-      });
+      const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
       const result = await response.json();
       alert(result.message);
     } catch(e) {
@@ -168,7 +153,6 @@
     showLoading(false);
   }
 
-  // 탭 전환
   function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-blue-600', 'text-white'));
@@ -176,7 +160,6 @@
     event.currentTarget.classList.add('bg-blue-600', 'text-white');
   }
 
-  // 동적 행 추가 
   function addRow(section, category, maxLimit = 30) {
     let arr = category ? currentData[section][category] : currentData[section];
     if (arr.length >= maxLimit) {
@@ -199,8 +182,10 @@
 
     if (section === 'academic' && category === 'curriculum' && field === 'subject') {
       const autoCat = curriculumMap[value.trim()];
-      if(autoCat) currentData[section][category][index]['type'] = autoCat;
-      renderStudentUI(); 
+      if(autoCat) {
+        currentData[section][category][index]['type'] = autoCat;
+        renderStudentUI(); 
+      }
     }
   }
 
@@ -211,9 +196,7 @@
     currentData.academic.grades[semester][subject] = value;
   }
 
-  // 화면 렌더링 함수
   function renderStudentUI() {
-    // 1. 기본 인적사항
     document.getElementById('b-name').value = currentData.basic.name || '';
     document.getElementById('b-career').value = currentData.basic.career || '';
     document.getElementById('b-uni').value = currentData.basic.university || '';
@@ -223,7 +206,6 @@
     document.getElementById('b-club3').value = currentData.basic.club3 || '';
     document.getElementById('b-phone').value = currentData.basic.phone || '';
 
-    // 2-1. 내신 교과 성적
     const semesters = ['1-1', '1-2', '2-1', '2-2', '3-1'];
     const subjects = ['국어', '수학', '영어', '사탐', '과탐'];
     let gradeHtml = '';
@@ -237,8 +219,7 @@
     });
     document.getElementById('grade-tbody').innerHTML = gradeHtml;
 
-    // 2-2. 전국연합학력평가 (사탐, 과탐, 등급/백분위 평균 포함)
-    if(currentData.academic.mockExams.length === 0) {
+    if(!Array.isArray(currentData.academic.mockExams) || currentData.academic.mockExams.length === 0) {
       currentData.academic.mockExams = mockExamRows.map(r => ({...r}));
     }
     let mockHtml = '';
@@ -246,7 +227,7 @@
       mockHtml += `<tr>
         ${i % 5 === 0 ? `<td rowspan="5" class="border p-1 text-center font-bold bg-gray-50">${exam.year}</td>` : ''}
         <td class="border p-1 text-center bg-gray-50">${exam.month}</td>
-        <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.korean||''}" placeholder="등급(백분위)" onchange="updateArray('academic','mockExams',${i},'korean',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.korean||''}" onchange="updateArray('academic','mockExams',${i},'korean',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.math||''}" onchange="updateArray('academic','mockExams',${i},'math',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.english||''}" onchange="updateArray('academic','mockExams',${i},'english',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.social||''}" onchange="updateArray('academic','mockExams',${i},'social',this.value)"></td>
@@ -257,7 +238,6 @@
     });
     document.getElementById('mock-exam-tbody').innerHTML = mockHtml;
 
-    // 2-3. 학업역량 (교과이수) - 공통과목 제거됨
     renderList('curriculum-list', currentData.academic.curriculum, 
       (item, i) => `
       <div class="flex gap-2 mb-2 items-center">
@@ -271,10 +251,9 @@
           <option value="공동교육과정" ${item.type==='공동교육과정'?'selected':''}>공동교육과정</option>
           <option value="시교육청프로그램" ${item.type==='시교육청프로그램'?'selected':''}>시교육청프로그램</option>
         </select>
-        <button onclick="deleteRow('academic','curriculum',${i})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded no-print">삭제</button>
+        <button onclick="deleteRow('academic','curriculum',${i})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded">삭제</button>
       </div>`);
 
-    // 3-1. 진로탐색활동
     renderList('exploration-list', currentData.career.exploration, 
       (item, i) => `
       <div class="grid grid-cols-12 gap-2 mb-2 p-2 border bg-white rounded items-center shadow-sm">
@@ -287,14 +266,13 @@
         <select onchange="updateArray('career','exploration',${i},'area',this.value)" class="col-span-2 border p-2 rounded">
           ${getRecordAreaOptions(item.area)}
         </select>
-        <button onclick="deleteRow('career','exploration',${i})" class="col-span-1 bg-red-500 text-white p-2 rounded hover:bg-red-600 text-sm no-print">삭제</button>
+        <button onclick="deleteRow('career','exploration',${i})" class="col-span-1 bg-red-500 text-white p-2 rounded hover:bg-red-600 text-sm">삭제</button>
       </div>`);
 
-    // 3-2. 자기주도적 탐구활동
     renderList('self-directed-list', currentData.career.selfDirected,
       (item, i) => `
       <div class="border p-4 mb-4 bg-white rounded shadow-sm relative">
-        <button onclick="deleteRow('career','selfDirected',${i})" class="absolute top-2 right-2 text-red-500 text-sm font-bold hover:underline no-print">삭제</button>
+        <button onclick="deleteRow('career','selfDirected',${i})" class="absolute top-2 right-2 text-red-500 text-sm font-bold hover:underline">삭제</button>
         <div class="grid grid-cols-2 gap-4 mb-3">
           <div><label class="text-sm font-bold text-blue-800">탐구 주제</label><input type="text" value="${item.topic||''}" onchange="updateArray('career','selfDirected',${i},'topic',this.value)" class="w-full border p-2 rounded mt-1"></div>
           <div><label class="text-sm font-bold text-blue-800">탐구 유형</label>
@@ -318,8 +296,7 @@
         </div>
       </div>`);
 
-    // 4. 공동체 역량 관리
-    if(currentData.community.items.length === 0) {
+    if(!Array.isArray(currentData.community.items) || currentData.community.items.length === 0) {
       currentData.community.items = initialCommunityItems.map(r => ({...r}));
     }
     let comHtml = '';
@@ -327,20 +304,19 @@
     currentData.community.items.forEach((item, i) => {
       let rowSpan = currentData.community.items.filter(x => x.category === item.category).length;
       comHtml += `<tr>
-        ${item.category !== lastCat ? `<td rowspan="${rowSpan}" class="border p-2 text-center font-bold bg-gray-50 w-24">${item.category}</td>` : ''}
-        <td class="border p-2 text-center bg-gray-50 text-sm w-24">${item.subCategory}</td>
+        ${item.category !== lastCat ? `<td rowspan="${rowSpan}" class="border p-2 text-center font-bold bg-gray-50">${item.category}</td>` : ''}
+        <td class="border p-2 text-center bg-gray-50 text-sm">${item.subCategory}</td>
         <td class="border p-0"><input type="text" class="w-full h-full p-2 text-sm outline-none" value="${item.role||''}" placeholder="주도적 역할" onchange="updateArray('community','items',${i},'role',this.value)"></td>
         <td class="border p-0"><textarea class="w-full p-2 h-16 text-sm outline-none resize-none" placeholder="활동 내용" onchange="updateArray('community','items',${i},'content',this.value)">${item.content||''}</textarea></td>
         <td class="border p-0"><textarea class="w-full p-2 h-16 text-sm outline-none resize-none" placeholder="역량 평가" onchange="updateArray('community','items',${i},'evaluation',this.value)">${item.evaluation||''}</textarea></td>
-        <td class="border p-0 w-20"><input type="text" class="w-full h-full p-2 text-center text-sm outline-none" value="${item.time||''}" placeholder="시기" onchange="updateArray('community','items',${i},'time',this.value)"></td>
-        <td class="border p-0 w-24"><select class="w-full h-full p-2 text-sm outline-none" onchange="updateArray('community','items',${i},'area',this.value)">${getRecordAreaOptions(item.area)}</select></td>
+        <td class="border p-0"><input type="text" class="w-full h-full p-2 text-center text-sm outline-none" value="${item.time||''}" placeholder="시기" onchange="updateArray('community','items',${i},'time',this.value)"></td>
+        <td class="border p-0"><select class="w-full h-full p-2 text-sm outline-none" onchange="updateArray('community','items',${i},'area',this.value)">${getRecordAreaOptions(item.area)}</select></td>
       </tr>`;
       lastCat = item.category;
     });
     document.getElementById('community-tbody').innerHTML = comHtml;
 
-    // 5. 독서활동
-    if(currentData.reading.length === 0) {
+    if(!Array.isArray(currentData.reading) || currentData.reading.length === 0) {
       currentData.reading = [{},{},{}]; 
     }
     renderList('reading-list', currentData.reading,
@@ -350,7 +326,7 @@
         <input type="text" placeholder="저자" value="${item.author||''}" onchange="updateArray('reading',null,${i},'author',this.value)" class="border p-2 w-32 rounded">
         <input type="text" placeholder="인상깊은 이유/연계활동" value="${item.reason||''}" onchange="updateArray('reading',null,${i},'reason',this.value)" class="border p-2 flex-1 rounded">
         <select onchange="updateArray('reading',null,${i},'area',this.value)" class="border p-2 w-24 rounded">${getRecordAreaOptions(item.area)}</select>
-        <button onclick="deleteRow('reading',null,${i})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded no-print">삭제</button>
+        <button onclick="deleteRow('reading',null,${i})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded">삭제</button>
       </div>`);
   }
 
@@ -369,11 +345,7 @@
   // ============== 교사 화면 로직 ==============
   let allStudentsData = [];
   async function fetchAllStudents() {
-    const response = await fetch(SCRIPT_URL, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getAllStudents' }) 
-    });
+    const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getAllStudents' }) });
     const result = await response.json();
     allStudentsData = result.students || [];
     renderTeacherTable();
@@ -394,43 +366,42 @@
   }
 
   let viewingStudentId = null;
-
-  // 완벽하게 수정된 상세보기 모달 열기 로직 (폼 영역을 복원 가능하게 이동)
   function openStudentModal(id) {
     const student = allStudentsData.find(s => s.id === id);
     if(!student) return;
     viewingStudentId = id;
-    currentData = student.data; 
-    mergeData(currentData); 
+    currentData = getEmptyData();
+    mergeData(student.data); 
 
     document.getElementById('modal-title').innerText = `${currentData.basic.name || '이름미상'} (${id}) 포트폴리오`;
     document.getElementById('m-teacher-notes').value = currentData.basic.teacherNotes || '';
     
     renderStudentUI(); 
     
-    // 폼 영역을 모달창 내부로 부드럽게 이동시킵니다.
-    const formContent = document.getElementById('form-content-area');
-    document.getElementById('modal-form-container').appendChild(formContent);
-    // 모달 안에서는 꽉 찬 화면으로 보여주기 위해 스크롤 막기
-    formContent.classList.remove('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
-    formContent.classList.add('w-full');
-
+    // 모달창 오픈 로직 안전하게 수정 (DOM 복사 오류 원천 차단)
     document.getElementById('print-modal').classList.remove('hidden');
+    const formContent = document.getElementById('reusable-form-content');
+    document.getElementById('modal-form-container').appendChild(formContent);
+    formContent.classList.remove('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
+    
+    // 인쇄 시 모든 탭이 보이도록 강제 처리
+    formContent.querySelectorAll('.tab-content').forEach(el => el.classList.add('force-print-block'));
   }
 
-  // 모달창 닫을 때 폼 영역을 제자리로 돌려놓는 로직 추가
   function closeStudentModal() {
     document.getElementById('print-modal').classList.add('hidden');
-    
-    // 폼 영역을 다시 원래의 학생화면 래퍼로 원상 복구시킵니다.
-    const formContent = document.getElementById('form-content-area');
-    document.getElementById('student-form-wrapper').appendChild(formContent);
-    // 원래의 스타일 속성을 다시 부여합니다.
-    formContent.classList.add('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
-    formContent.classList.remove('w-full');
-
     viewingStudentId = null;
-    currentData = { basic:{}, academic:{curriculum:[], mockExams:[], grades:{}}, career:{exploration:[],selfDirected:[]}, community:{items:[]}, reading:[] };
+    currentData = getEmptyData();
+    
+    // 모달을 닫을 때 폼을 원래 위치로 안전하게 반환
+    const formContent = document.getElementById('reusable-form-content');
+    document.getElementById('student-form-mount').appendChild(formContent);
+    formContent.classList.add('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
+    formContent.querySelectorAll('.tab-content').forEach(el => el.classList.remove('force-print-block'));
+    
+    // 첫번째 탭으로 초기화
+    switchTab('tab1');
+    document.getElementById('tab1-btn').click();
   }
 
   async function saveTeacherNotes() {
@@ -483,8 +454,8 @@
     </div>
     
     <!-- 탭 네비게이션 -->
-    <div class="flex border-b border-gray-200 text-sm font-bold bg-gray-100 overflow-x-auto">
-      <button onclick="switchTab('tab1')" class="tab-btn py-4 px-8 bg-blue-600 text-white whitespace-nowrap border-r border-gray-200 hover:bg-blue-700 transition">1. 기본인적사항</button>
+    <div class="flex border-b border-gray-200 text-sm font-bold bg-gray-100 overflow-x-auto no-print">
+      <button id="tab1-btn" onclick="switchTab('tab1')" class="tab-btn py-4 px-8 bg-blue-600 text-white whitespace-nowrap border-r border-gray-200 hover:bg-blue-700 transition">1. 기본인적사항</button>
       <button onclick="switchTab('tab2')" class="tab-btn py-4 px-8 text-gray-600 whitespace-nowrap border-r border-gray-200 hover:bg-gray-200 transition">2. 학업역량</button>
       <button onclick="switchTab('tab3')" class="tab-btn py-4 px-8 text-gray-600 whitespace-nowrap border-r border-gray-200 hover:bg-gray-200 transition">3. 진로역량</button>
       <button onclick="switchTab('tab4')" class="tab-btn py-4 px-8 text-gray-600 whitespace-nowrap border-r border-gray-200 hover:bg-gray-200 transition">4. 공동체역량</button>
@@ -492,9 +463,9 @@
       <button onclick="switchTab('tab6')" class="tab-btn py-4 px-8 text-gray-600 whitespace-nowrap hover:bg-gray-200 transition">6. 참고자료</button>
     </div>
 
-    <!-- 탭 내용 영역을 감싸는 안전한 Wrapper (모달창 이동/복구용) -->
-    <div id="student-form-wrapper">
-      <div id="form-content-area" class="p-8 h-[75vh] overflow-y-auto bg-white">
+    <!-- 탭 내용 영역 (모달 팝업 시 이 영역을 통째로 이동시킴) -->
+    <div id="student-form-mount">
+      <div id="reusable-form-content" class="p-8 h-[75vh] overflow-y-auto bg-white">
         
         <!-- 탭1: 기본인적사항 -->
         <div id="tab1" class="tab-content">
@@ -571,7 +542,7 @@
 
           <h3 class="text-lg font-bold mb-2 text-blue-800">교육과정 이수 현황 (2022 개정)</h3>
           <div id="curriculum-list"></div>
-          <button onclick="addRow('academic', 'curriculum')" class="mt-3 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition no-print">+ 이수 과목 추가</button>
+          <button onclick="addRow('academic', 'curriculum')" class="no-print mt-3 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition">+ 이수 과목 추가</button>
         </div>
 
         <!-- 탭3: 진로역량 -->
@@ -580,12 +551,12 @@
           
           <h3 class="text-lg font-bold mb-3 text-blue-800 bg-blue-50 p-2 rounded">3-1. 진로탐색활동 (전공탐색/진로체험)</h3>
           <div id="exploration-list"></div>
-          <button onclick="addRow('career', 'exploration', 15)" class="mb-10 mt-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition no-print">+ 활동 추가</button>
+          <button onclick="addRow('career', 'exploration', 15)" class="no-print mb-10 mt-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition">+ 활동 추가</button>
 
           <h3 class="text-lg font-bold mb-3 text-blue-800 bg-blue-50 p-2 rounded">3-2. 자기주도적 탐구활동</h3>
-          <p class="text-sm text-gray-500 mb-4">* 탐구유형: 학술자료조사 / 실험·실습 / 데이터분석 / 융합·실천 (참고자료 탭 확인)</p>
+          <p class="text-sm text-gray-500 mb-4 no-print">* 탐구유형: 학술자료조사 / 실험·실습 / 데이터분석 / 융합·실천 (참고자료 탭 확인)</p>
           <div id="self-directed-list"></div>
-          <button onclick="addRow('career', 'selfDirected', 15)" class="mt-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition no-print">+ 탐구활동 추가</button>
+          <button onclick="addRow('career', 'selfDirected', 15)" class="no-print mt-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition">+ 탐구활동 추가</button>
         </div>
 
         <!-- 탭4: 공동체역량 -->
@@ -611,11 +582,11 @@
         <div id="tab5" class="tab-content hidden">
           <h2 class="text-2xl font-bold mb-6 border-l-4 border-blue-600 pl-3 text-gray-800">5. 독서활동상황 관리</h2>
           <div id="reading-list"></div>
-          <button onclick="addRow('reading', null, 30)" class="mt-4 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition no-print">+ 독서 기록 추가</button>
+          <button onclick="addRow('reading', null, 30)" class="no-print mt-4 bg-blue-100 text-blue-800 px-4 py-2 rounded-md font-bold shadow-sm hover:bg-blue-200 transition">+ 독서 기록 추가</button>
         </div>
 
         <!-- 탭6: 참고자료 -->
-        <div id="tab6" class="tab-content hidden">
+        <div id="tab6" class="tab-content hidden no-print">
           <h2 class="text-2xl font-bold mb-6 border-l-4 border-blue-600 pl-3 text-gray-800">6. 참고용 자료 (탐구활동 분류 가이드)</h2>
           
           <h3 class="font-bold text-lg mb-3">■ 탐구활동 관리표 (추천 분류)</h3>
@@ -717,12 +688,11 @@
     
     <div class="text-center font-extrabold text-3xl mb-12 print-only text-black">생각의 지도 큐레이팅 포트폴리오</div>
     
-    <!-- 모달 내용이 들어갈 빈 컨테이너 -->
     <div id="modal-form-container"></div>
   </div>
 </div>
 
-<!-- 우측 하단 세일고 로고 및 텍스트 (스크립트 완전히 종료된 후 바디 직전) -->
+<!-- 우측 하단 세일고 로고 -->
 <div class="fixed bottom-5 right-6 flex items-center gap-2 z-40 no-print bg-white/90 px-4 py-2 rounded-full shadow-md backdrop-blur-sm border border-gray-200">
   <img src="세일고CI-01.png" alt="세일고 로고" class="w-6 h-6 object-contain">
   <span class="font-bold text-sm" style="color: #b42814;">세일고등학교</span>
