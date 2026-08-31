@@ -225,17 +225,17 @@
     document.getElementById('grade-tbody').innerHTML = gradeHtml;
     document.getElementById('grade-notes').value = currentData.academic.grades.notes || '';
 
-    // 모의고사 렌더링 (셀 구조를 완벽하게 분리)
+    // 모의고사 렌더링 (균일한 셀 너비 적용)
     if(!Array.isArray(currentData.academic.mockExams) || currentData.academic.mockExams.length === 0) {
       currentData.academic.mockExams = mockExamRows.map(r => ({...r}));
     }
     let mockHtml = '';
     currentData.academic.mockExams.forEach((exam, i) => {
       mockHtml += `<tr>
-        ${i % 5 === 0 ? `<td rowspan="5" class="border p-1 text-center font-bold bg-gray-50">${exam.year}</td>` : ''}
-        <td class="border p-1 text-center bg-gray-50">${exam.month}</td>
-        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="백" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"></td>
-        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="등" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></td>
+        ${i % 5 === 0 ? `<td rowspan="5" class="border p-1 text-center font-bold bg-gray-50 w-16">${exam.year}</td>` : ''}
+        <td class="border p-1 text-center bg-gray-50 w-16">${exam.month}</td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathP||''}" onchange="updateArray('academic','mockExams',${i},'mathP',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathG||''}" onchange="updateArray('academic','mockExams',${i},'mathG',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.engP||''}" onchange="updateArray('academic','mockExams',${i},'engP',this.value)"></td>
@@ -551,13 +551,13 @@
                 <th class="border p-2 w-16" rowspan="2">구분</th>
                 <th class="border p-1" colspan="2">국어</th><th class="border p-1" colspan="2">수학</th><th class="border p-1" colspan="2">영어</th>
                 <th class="border p-1" colspan="2">사탐</th><th class="border p-1" colspan="2">과탐</th>
-                <th class="border p-2" rowspan="2">백분위<br>평균</th>
-                <th class="border p-2" rowspan="2">등급<br>평균</th>
+                <th class="border p-2 w-12" rowspan="2">백분위<br>평균</th>
+                <th class="border p-2 w-12" rowspan="2">등급<br>평균</th>
               </tr>
               <tr class="bg-gray-100 border text-center text-xs">
-                <th class="border p-1 w-10">백분위</th><th class="border p-1 w-10">등급</th><th class="border p-1 w-10">백분위</th><th class="border p-1 w-10">등급</th>
-                <th class="border p-1 w-10">백분위</th><th class="border p-1 w-10">등급</th><th class="border p-1 w-10">백분위</th><th class="border p-1 w-10">등급</th>
-                <th class="border p-1 w-10">백분위</th><th class="border p-1 w-10">등급</th>
+                <th class="border p-1 w-12">백분위</th><th class="border p-1 w-12">등급</th><th class="border p-1 w-12">백분위</th><th class="border p-1 w-12">등급</th>
+                <th class="border p-1 w-12">백분위</th><th class="border p-1 w-12">등급</th><th class="border p-1 w-12">백분위</th><th class="border p-1 w-12">등급</th>
+                <th class="border p-1 w-12">백분위</th><th class="border p-1 w-12">등급</th>
               </tr>
             </thead>
             <tbody id="mock-exam-tbody"></tbody>
