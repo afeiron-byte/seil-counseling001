@@ -87,10 +87,23 @@
 
     showLoading(true);
     try {
+      // CORS 문제 해결을 위해 Content-Type을 text/plain으로 강제 설정
       const response = await fetch(SCRIPT_URL, {
-        method: 'POST', body: JSON.stringify({ action: 'login', id: id, pw: pw })
+        method: 'POST', 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'login', id: id, pw: pw })
       });
-      const result = await response.json();
+      
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        alert("구글 서버 권한 오류입니다. Apps Script 배포 설정에서 '액세스 권한이 있는 사용자'를 '모든 사용자'로 변경했는지 꼭 확인해주세요!");
+        console.error("서버 응답 내용:", text);
+        showLoading(false);
+        return;
+      }
       
       if(result.success) {
         currentUser = { role: 'student', id: id, pw: pw };
@@ -102,7 +115,7 @@
         alert(result.message);
       }
     } catch(e) {
-      alert("서버 통신 오류가 발생했습니다. SCRIPT_URL 설정 및 배포 상태를 확인해주세요.");
+      alert("서버와 통신할 수 없습니다. 인터넷 연결을 확인해주세요. Error: " + e.message);
       console.error(e);
     }
     showLoading(false);
@@ -142,7 +155,11 @@
     };
 
     try {
-      const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const response = await fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload) 
+      });
       const result = await response.json();
       alert(result.message);
     } catch(e) {
@@ -352,7 +369,11 @@
   // ============== 교사 화면 로직 ==============
   let allStudentsData = [];
   async function fetchAllStudents() {
-    const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getAllStudents' }) });
+    const response = await fetch(SCRIPT_URL, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getAllStudents' }) 
+    });
     const result = await response.json();
     allStudentsData = result.students || [];
     renderTeacherTable();
@@ -374,7 +395,7 @@
 
   let viewingStudentId = null;
 
-  // [수정] 상세보기 모달 열기 로직 변경 (안전한 DOM 이동)
+  // 완벽하게 수정된 상세보기 모달 열기 로직 (폼 영역을 복원 가능하게 이동)
   function openStudentModal(id) {
     const student = allStudentsData.find(s => s.id === id);
     if(!student) return;
@@ -387,24 +408,24 @@
     
     renderStudentUI(); 
     
-    // 폼 영역을 학생화면에서 모달 안으로 '안전하게 이동'
+    // 폼 영역을 모달창 내부로 부드럽게 이동시킵니다.
     const formContent = document.getElementById('form-content-area');
     document.getElementById('modal-form-container').appendChild(formContent);
-    // 모달 안에서는 꽉 찬 화면으로 보여주기 위해 스크롤 클래스 제거
+    // 모달 안에서는 꽉 찬 화면으로 보여주기 위해 스크롤 막기
     formContent.classList.remove('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
     formContent.classList.add('w-full');
 
     document.getElementById('print-modal').classList.remove('hidden');
   }
 
-  // [수정] 모달 닫기 로직 변경 (폼 영역 제자리로 돌려놓기)
+  // 모달창 닫을 때 폼 영역을 제자리로 돌려놓는 로직 추가
   function closeStudentModal() {
     document.getElementById('print-modal').classList.add('hidden');
     
-    // 폼 영역을 모달에서 다시 학생화면 래퍼로 원상 복구
+    // 폼 영역을 다시 원래의 학생화면 래퍼로 원상 복구시킵니다.
     const formContent = document.getElementById('form-content-area');
     document.getElementById('student-form-wrapper').appendChild(formContent);
-    // 스크롤 및 패딩 클래스 원상 복구
+    // 원래의 스타일 속성을 다시 부여합니다.
     formContent.classList.add('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
     formContent.classList.remove('w-full');
 
@@ -471,7 +492,7 @@
       <button onclick="switchTab('tab6')" class="tab-btn py-4 px-8 text-gray-600 whitespace-nowrap hover:bg-gray-200 transition">6. 참고자료</button>
     </div>
 
-    <!-- 탭 내용 영역을 감싸는 Wrapper 추가 (모달 복귀용) -->
+    <!-- 탭 내용 영역을 감싸는 안전한 Wrapper (모달창 이동/복구용) -->
     <div id="student-form-wrapper">
       <div id="form-content-area" class="p-8 h-[75vh] overflow-y-auto bg-white">
         
