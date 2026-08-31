@@ -10,6 +10,12 @@
       body * { visibility: hidden; }
       #print-modal, #print-modal * { visibility: visible; }
       #print-modal { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; background: white;}
+      /* 인쇄 잘림 방지를 위한 핵심 CSS 추가 */
+      body, html, #print-modal, #reusable-form-content, .min-h-screen {
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+      }
       .no-print { display: none !important; }
       .page-break { page-break-after: always; }
       input, select, textarea { border: 1px solid #ddd !important; background: transparent !important; }
@@ -19,7 +25,7 @@
 <body class="bg-gray-100 text-gray-800">
 
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgdaG8zyc_9Fa8E3WJBzuQUJ_o06i1L1XxWJihOJoJq3BxOsJuDOO0_0mlzmASzmEGOw/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwHeHYv058AhEQYlj8I6jWVFRaBoeOvupxn6TJ_nKKeriaZpq0ais5t6xuPWcYWuLejTw/exec";
   
   let currentUser = null;
   let currentData = getEmptyData();
@@ -63,20 +69,16 @@
   ];
 
   async function login() {
-    const id = document.getElementById('login-id').value;
-    const pw = document.getElementById('login-pw').value;
+    const id = document.getElementById('login-id').value.trim();
+    const pw = document.getElementById('login-pw').value.trim();
 
-    if(id === 'seilgo' && pw === 'seil1983!') {
-      showLoading(true);
-      currentUser = { role: 'teacher' };
-      await fetchAllStudents();
-      showLoading(false);
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('teacher-screen').classList.remove('hidden');
+    if(!id || !pw) {
+      alert("ID와 비밀번호를 입력해주세요.");
       return;
     }
 
-    if(id.length !== 6 || id[2] !== '0') {
+    // 학생인 경우에만 6자리 검사 (숫자만 입력된 경우)
+    if (!isNaN(id) && (id.length !== 6 || id[2] !== '0')) {
       alert("학번은 입학년도(2)+0+반(1)+번호(2) 형식의 6자리 숫자여야 합니다. (예: 260101)");
       return;
     }
@@ -89,11 +91,18 @@
       const result = await response.json();
       
       if(result.success) {
-        currentUser = { role: 'student', id: id, pw: pw };
-        if(result.data) mergeData(result.data);
-        renderStudentUI();
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('student-screen').classList.remove('hidden');
+        if(result.role === 'teacher') {
+          currentUser = { role: 'teacher' };
+          await fetchAllStudents();
+          document.getElementById('login-screen').classList.add('hidden');
+          document.getElementById('teacher-screen').classList.remove('hidden');
+        } else {
+          currentUser = { role: 'student', id: id, pw: pw };
+          if(result.data) mergeData(result.data);
+          renderStudentUI();
+          document.getElementById('login-screen').classList.add('hidden');
+          document.getElementById('student-screen').classList.remove('hidden');
+        }
       } else {
         alert(result.message);
       }
@@ -225,7 +234,7 @@
     document.getElementById('grade-tbody').innerHTML = gradeHtml;
     document.getElementById('grade-notes').value = currentData.academic.grades.notes || '';
 
-    // 모의고사 렌더링 (균일한 셀 너비 적용)
+    // 모의고사 렌더링
     if(!Array.isArray(currentData.academic.mockExams) || currentData.academic.mockExams.length === 0) {
       currentData.academic.mockExams = mockExamRows.map(r => ({...r}));
     }
@@ -234,8 +243,8 @@
       mockHtml += `<tr>
         ${i % 5 === 0 ? `<td rowspan="5" class="border p-1 text-center font-bold bg-gray-50 w-16">${exam.year}</td>` : ''}
         <td class="border p-1 text-center bg-gray-50 w-16">${exam.month}</td>
-        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"></td>
-        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="백" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="등" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathP||''}" onchange="updateArray('academic','mockExams',${i},'mathP',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathG||''}" onchange="updateArray('academic','mockExams',${i},'mathG',this.value)"></td>
         <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.engP||''}" onchange="updateArray('academic','mockExams',${i},'engP',this.value)"></td>
