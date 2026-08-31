@@ -225,7 +225,7 @@
     document.getElementById('grade-tbody').innerHTML = gradeHtml;
     document.getElementById('grade-notes').value = currentData.academic.grades.notes || '';
 
-    // 모의고사 렌더링
+    // 모의고사 렌더링 (셀 구조를 완벽하게 분리)
     if(!Array.isArray(currentData.academic.mockExams) || currentData.academic.mockExams.length === 0) {
       currentData.academic.mockExams = mockExamRows.map(r => ({...r}));
     }
@@ -234,13 +234,18 @@
       mockHtml += `<tr>
         ${i % 5 === 0 ? `<td rowspan="5" class="border p-1 text-center font-bold bg-gray-50">${exam.year}</td>` : ''}
         <td class="border p-1 text-center bg-gray-50">${exam.month}</td>
-        <td class="border p-0"><div class="flex"><input type="text" class="w-1/2 text-center p-1 border-r text-xs" placeholder="백분위" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"><input type="text" class="w-1/2 text-center p-1 text-xs" placeholder="등급" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></div></td>
-        <td class="border p-0"><div class="flex"><input type="text" class="w-1/2 text-center p-1 border-r text-xs" value="${exam.mathP||''}" onchange="updateArray('academic','mockExams',${i},'mathP',this.value)"><input type="text" class="w-1/2 text-center p-1 text-xs" value="${exam.mathG||''}" onchange="updateArray('academic','mockExams',${i},'mathG',this.value)"></div></td>
-        <td class="border p-0"><div class="flex"><input type="text" class="w-1/2 text-center p-1 border-r text-xs" value="${exam.engP||''}" onchange="updateArray('academic','mockExams',${i},'engP',this.value)"><input type="text" class="w-1/2 text-center p-1 text-xs" value="${exam.engG||''}" onchange="updateArray('academic','mockExams',${i},'engG',this.value)"></div></td>
-        <td class="border p-0"><div class="flex"><input type="text" class="w-1/2 text-center p-1 border-r text-xs" value="${exam.socP||''}" onchange="updateArray('academic','mockExams',${i},'socP',this.value)"><input type="text" class="w-1/2 text-center p-1 text-xs" value="${exam.socG||''}" onchange="updateArray('academic','mockExams',${i},'socG',this.value)"></div></td>
-        <td class="border p-0"><div class="flex"><input type="text" class="w-1/2 text-center p-1 border-r text-xs" value="${exam.sciP||''}" onchange="updateArray('academic','mockExams',${i},'sciP',this.value)"><input type="text" class="w-1/2 text-center p-1 text-xs" value="${exam.sciG||''}" onchange="updateArray('academic','mockExams',${i},'sciG',this.value)"></div></td>
-        <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.avgPercentile||''}" onchange="updateArray('academic','mockExams',${i},'avgPercentile',this.value)"></td>
-        <td class="border p-0"><input type="text" class="w-full text-center p-1 text-sm outline-none" value="${exam.avgGrade||''}" onchange="updateArray('academic','mockExams',${i},'avgGrade',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="백" value="${exam.korP||''}" onchange="updateArray('academic','mockExams',${i},'korP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" placeholder="등" value="${exam.korG||''}" onchange="updateArray('academic','mockExams',${i},'korG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathP||''}" onchange="updateArray('academic','mockExams',${i},'mathP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.mathG||''}" onchange="updateArray('academic','mockExams',${i},'mathG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.engP||''}" onchange="updateArray('academic','mockExams',${i},'engP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.engG||''}" onchange="updateArray('academic','mockExams',${i},'engG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.socP||''}" onchange="updateArray('academic','mockExams',${i},'socP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.socG||''}" onchange="updateArray('academic','mockExams',${i},'socG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.sciP||''}" onchange="updateArray('academic','mockExams',${i},'sciP',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-xs outline-none" value="${exam.sciG||''}" onchange="updateArray('academic','mockExams',${i},'sciG',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-sm outline-none" value="${exam.avgPercentile||''}" onchange="updateArray('academic','mockExams',${i},'avgPercentile',this.value)"></td>
+        <td class="border p-0"><input type="text" class="w-full h-full text-center p-1 text-sm outline-none" value="${exam.avgGrade||''}" onchange="updateArray('academic','mockExams',${i},'avgGrade',this.value)"></td>
       </tr>`;
     });
     document.getElementById('mock-exam-tbody').innerHTML = mockHtml;
@@ -404,8 +409,14 @@
     document.getElementById('modal-form-container').appendChild(formContent);
     formContent.classList.remove('h-[75vh]', 'overflow-y-auto', 'bg-white', 'p-8');
     
-    // 모달창에서는 모든 탭이 보이도록 처리
-    formContent.querySelectorAll('.tab-content').forEach(el => el.style.display = 'block');
+    // 교사용 상세 보기 모달에서는 탭 1~5만 보이게 하고, 탭 6(참고자료)은 완전히 가리기
+    formContent.querySelectorAll('.tab-content').forEach(el => {
+      if(el.id === 'tab6') {
+        el.style.display = 'none';
+      } else {
+        el.style.display = 'block';
+      }
+    });
   }
 
   function closeStudentModal() {
@@ -600,14 +611,51 @@
         <!-- 탭6: 참고자료 -->
         <div id="tab6" class="tab-content no-print" style="display:none;">
           <h2 class="text-2xl font-bold mb-6 border-l-4 border-blue-600 pl-3 text-gray-800 mt-10">6. 참고용 자료 (탐구활동 분류 가이드)</h2>
-          <h3 class="font-bold text-lg mb-3">■ 탐구활동 관리표 (추천 분류)</h3>
-          <table class="w-full border-collapse mb-8 text-sm text-left">
-            <tr class="bg-blue-50 border"><th class="border p-2 w-1/4">탐구유형</th><th class="border p-2">주요 활동</th><th class="border p-2">학생부 사례</th><th class="border p-2">대학이 높게 평가하는 요소</th></tr>
-            <tr><td class="border p-2 font-bold bg-gray-50">① 학술자료 조사·분석형</td><td class="border p-2">논문, 학술/통계자료, 도서 활용 탐구</td><td class="border p-2">교과 탐구보고서, 독서 연계, 사회/역사 탐구</td><td class="border p-2">자료의 신뢰성, 출처 활용, 비판적 분석</td></tr>
-            <tr><td class="border p-2 font-bold bg-gray-50">② 실험·실습·제작형</td><td class="border p-2">실험, 프로그래밍, 제작, 설계, 모델링</td><td class="border p-2">과학 실험, 공학 설계, 메이커 활동, 코딩</td><td class="border p-2">문제 해결 과정, 시행착오, 결과 분석</td></tr>
-            <tr><td class="border p-2 font-bold bg-gray-50">③ 현장조사 데이터 분석형</td><td class="border p-2">설문조사, 인터뷰, 관찰, 빅데이터 분석</td><td class="border p-2">사회문제 조사, 지역사회 프로젝트, 경제 통계</td><td class="border p-2">연구 설계, 데이터 해석 능력</td></tr>
-            <tr><td class="border p-2 font-bold bg-gray-50">④ 융합·실천·확장형</td><td class="border p-2">실제 문제해결, 캠페인, 교육자료 제작</td><td class="border p-2">학급특색사업, 정책제안, 캠페인, 콘텐츠 제작</td><td class="border p-2">탐구의 확장성, 사회적 가치, 실전성</td></tr>
+          
+          <h3 class="font-bold text-lg mb-3 mt-6">■ 학생부 탐구활동 관리표 (추천 분류)</h3>
+          <table class="w-full border-collapse mb-8 text-sm text-left shadow-sm">
+            <thead>
+              <tr class="bg-blue-800 text-white border"><th class="border p-3 w-1/4">탐구유형</th><th class="border p-3">주요 활동</th><th class="border p-3">학생부 사례</th><th class="border p-3">대학이 높게 평가하는 요소</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="border p-3 font-bold bg-blue-50 text-blue-900">① 학술자료 조사·분석형</td><td class="border p-3 bg-white">논문, 학술자료, 통계자료, 도서 등을 활용하여 탐구</td><td class="border p-3 bg-white">교과 탐구보고서, 독서 연계 탐구, 사회문화 조사, 역사 탐구</td><td class="border p-3 bg-white">자료의 신뢰성, 다양한 출처 활용, 비판적 분석</td></tr>
+              <tr><td class="border p-3 font-bold bg-blue-50 text-blue-900">② 실험·실습·제작형</td><td class="border p-3 bg-white">실험, 프로그래밍, 제작, 설계, 모델링</td><td class="border p-3 bg-white">과학 실험, 공학 설계, 메이커 활동, 코딩 프로젝트</td><td class="border p-3 bg-white">문제 해결 과정, 시행착오, 결과 분석</td></tr>
+              <tr><td class="border p-3 font-bold bg-blue-50 text-blue-900">③ 현장조사 데이터 분석형</td><td class="border p-3 bg-white">설문조사, 인터뷰, 관찰, 빅데이터 분석</td><td class="border p-3 bg-white">사회문제 조사, 지역사회 프로젝트, 경제 통계 분석</td><td class="border p-3 bg-white">연구 설계, 데이터 해석 능력</td></tr>
+              <tr><td class="border p-3 font-bold bg-blue-50 text-blue-900">④ 융합·실천·확장형</td><td class="border p-3 bg-white">탐구 결과를 실제 문제 해결이나 캠페인, 교육자료 제작 등으로 연결</td><td class="border p-3 bg-white">학급특색사업, 정책 제안, 캠페인, 교육 콘텐츠 제작</td><td class="border p-3 bg-white">탐구의 확장성, 사회적 가치, 실전성</td></tr>
+            </tbody>
           </table>
+
+          <h3 class="font-bold text-lg mb-3 mt-8">■ 탐구활동 유형별 키워드 및 대표 전공</h3>
+          <div class="grid grid-cols-2 gap-6">
+            <div class="border border-blue-200 rounded-lg shadow-sm bg-white overflow-hidden">
+              <div class="bg-blue-100 p-3 font-bold text-blue-900 border-b border-blue-200 text-center text-lg">① 학술자료 조사·분석형</div>
+              <div class="p-5 text-sm text-gray-700 leading-relaxed">
+                <b class="text-blue-800">대표 키워드:</b> 논문 분석, 선행연구 조사, 문헌 연구, 독서 연계, 통계자료 분석, 기사 분석, 역사자료 분석<br><br>
+                <b class="text-blue-800">대표 전공:</b> 인문, 사회, 경영, 경제, 법학
+              </div>
+            </div>
+            <div class="border border-blue-200 rounded-lg shadow-sm bg-white overflow-hidden">
+              <div class="bg-blue-100 p-3 font-bold text-blue-900 border-b border-blue-200 text-center text-lg">② 실험·실습·제작형</div>
+              <div class="p-5 text-sm text-gray-700 leading-relaxed">
+                <b class="text-blue-800">대표 키워드:</b> 실험설계, 변수통제, 제작, 프로그래밍, 모델링, 공학설계, 시뮬레이션, AI, 발명<br><br>
+                <b class="text-blue-800">대표 전공:</b> 자연과학, 공학, 의학, ICT
+              </div>
+            </div>
+            <div class="border border-blue-200 rounded-lg shadow-sm bg-white overflow-hidden">
+              <div class="bg-blue-100 p-3 font-bold text-blue-900 border-b border-blue-200 text-center text-lg">③ 현장조사 데이터 분석형</div>
+              <div class="p-5 text-sm text-gray-700 leading-relaxed">
+                <b class="text-blue-800">대표 키워드:</b> 설문조사, 인터뷰, 현장답사, 관찰, GIS, 공공데이터 분석, 빅데이터 분석, 통계, 사례연구<br><br>
+                <b class="text-blue-800">대표 전공:</b> 사회과학, 행정, 심리, 도시, 환경
+              </div>
+            </div>
+            <div class="border border-blue-200 rounded-lg shadow-sm bg-white overflow-hidden">
+              <div class="bg-blue-100 p-3 font-bold text-blue-900 border-b border-blue-200 text-center text-lg">④ 융합·실천·확장형</div>
+              <div class="p-5 text-sm text-gray-700 leading-relaxed">
+                <b class="text-blue-800">대표 키워드:</b> 캠페인, 정책제안, 교육자료 제작, 봉사 연계, 창업 아이디어, 지역사회 연계 프로젝트, 콘텐츠 제작, 전시회<br><br>
+                <b class="text-blue-800">대표 전공:</b> 교육, 미디어, 디자인, 경영, 융합학문
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
